@@ -1,6 +1,7 @@
 const jwt = require('jsonwebtoken');
 const User = require('../models/user');
 const config = require('../config');
+const { created, success, error } = require('../utils/apiResponse');
 
 const JWT_SECRET = config.jwtSecret || 'devsecret';
 
@@ -28,11 +29,7 @@ async function signup(req, res) {
         const user = new User({ email, password }); // NOTE: hashing omitted for simplicity
         await user.save();
 
-        return res.status(201).json({
-            success: true,
-            message: 'User created successfully',
-            user: { id: user._id, email: user.email }
-        });
+        return created(res, { id: user._id, email: user.email });
     } catch (err) {
         console.error('Signup controller error:', err);
         return res.status(500).json({ success: false, message: 'Server error during signup' });
@@ -59,12 +56,7 @@ async function login(req, res) {
 
         const token = jwt.sign({ id: user._id }, JWT_SECRET, { expiresIn: '1d' });
 
-        return res.json({
-            success: true,
-            message: 'Login successful',
-            user: { id: user._id, email: user.email },
-            token
-        });
+        return success(res, { user: { id: user._id, email: user.email }, token });
     } catch (err) {
         console.error('Login controller error:', err);
         return res.status(500).json({ success: false, message: 'Server error during login' });

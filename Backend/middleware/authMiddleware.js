@@ -1,6 +1,11 @@
 const jwt = require('jsonwebtoken');
+const config = require('../config');
 
-const JWT_SECRET = process.env.JWT_SECRET || 'devsecret';
+const JWT_SECRET = config.jwtSecret || 'devsecret';
+
+if (!config.jwtSecret) {
+    console.warn('JWT_SECRET not set. Auth middleware is using a development fallback secret.');
+}
 
 function verifyToken(req, res, next) {
     const authHeader = req.headers.authorization || '';
