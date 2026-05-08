@@ -2,8 +2,8 @@ const express = require('express');
 const cors = require('cors');
 const dotenv = require('dotenv');
 const connectDB = require('./db_connect/db');
-const User = require('./models/user');
-const Todo = require('./models/list');
+const authRoutes = require('./routes/authRoutes');
+const todoRoutes = require('./routes/todoRoutes');
 
 dotenv.config();
 connectDB();
@@ -14,57 +14,9 @@ const PORT = process.env.PORT || 5000;
 app.use(cors());
 app.use(express.json());
 
-// Signup route
-app.post('/api/signup', async (req, res) => {
-    try {
-        const { email, password } = req.body;
-
-        const existingUser = await User.findOne({ email });
-        if (existingUser) {
-            return res.status(400).json({ message: 'User already exists' });
-        }
-
-        const user = new User({
-            email,
-            password // TODO: hash this in production
-        });
-
-        await user.save();
-
-        res.status(201).json({
-            message: 'User created successfully',
-            user: { id: user._id, email: user.email }
-        });
-    } catch (error) {
-        console.error('Signup error:', error);
-        res.status(500).json({ message: 'Server error during signup' });
-    }
-});
-
-// Login route
-app.post('/api/login', async (req, res) => {
-    try {
-        const { email, password } = req.body;
-
-        const user = await User.findOne({ email });
-        if (!user) {
-            return res.status(401).json({ message: 'Invalid credentials' });
-        }
-
-        // TODO: use bcrypt to compare hashed passwords in production
-        if (user.password !== password) {
-            return res.status(401).json({ message: 'Invalid credentials' });
-        }
-
-        res.json({
-            message: 'Login successful',
-            user: { id: user._id, email: user.email }
-        });
-    } catch (error) {
-        console.error('Login error:', error);
-        res.status(500).json({ message: 'Server error during login' });
-    }
-});
+// Mount auth routes (signup, login)
+app.use('/api', authRoutes);
+app.use('/api', todoRoutes);
 
 // Get todos for a user
 app.get('/api/todos/:userId', async (req, res) => {

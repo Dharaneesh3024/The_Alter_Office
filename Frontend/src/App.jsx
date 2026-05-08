@@ -8,11 +8,9 @@ function App() {
   const [currentUser, setCurrentUser] = useState(null);
   const [currentPage, setCurrentPage] = useState('login');
 
-  // Check if user was already logged in
   useEffect(() => {
     const savedUser = localStorage.getItem('currentUser');
     if (savedUser) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
       setCurrentUser(JSON.parse(savedUser));
       setCurrentPage('todos');
     }

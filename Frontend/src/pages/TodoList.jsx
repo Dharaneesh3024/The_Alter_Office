@@ -11,11 +11,21 @@ function TodoList({ user, onLogout }) {
     const fetchTodos = async () => {
         try {
             const response = await fetch(`http://localhost:5000/api/todos/${user.id}`);
-            if (response.ok) {
-                const data = await response.json();
-                setTodos(data);
+            const body = await response.json().catch(() => null);
+
+            if (!response.ok) {
+                const msg = body && body.message ? body.message : 'Failed to fetch todos';
+                setError(msg);
+                return;
+            }
+
+            if (body && body.success && Array.isArray(body.data)) {
+                setTodos(body.data);
+            } else if (Array.isArray(body)) {
+                // backward-compat: handle older raw array responses
+                setTodos(body);
             } else {
-                setError('Failed to fetch todos');
+                setError('Unexpected response fetching todos');
             }
         } catch (error) {
             console.error('Error fetching todos:', error);
@@ -47,12 +57,23 @@ function TodoList({ user, onLogout }) {
                 }),
             });
 
-            if (response.ok) {
-                const todo = await response.json();
-                setTodos([todo, ...todos]);
+            const body = await response.json().catch(() => null);
+
+            if (!response.ok) {
+                const msg = body && body.message ? body.message : 'Failed to add todo';
+                setError(msg);
+                return;
+            }
+
+            if (body && body.success && body.data) {
+                setTodos([body.data, ...todos]);
+                setNewTodo({ title: '', description: '' });
+            } else if (body) {
+                // backward-compat
+                setTodos([body, ...todos]);
                 setNewTodo({ title: '', description: '' });
             } else {
-                setError('Failed to add todo');
+                setError('Unexpected response adding todo');
             }
         } catch (error) {
             console.error('Error adding todo:', error);
@@ -72,15 +93,17 @@ function TodoList({ user, onLogout }) {
                 body: JSON.stringify(updates),
             });
 
-            if (response.ok) {
-                const updatedTodo = await response.json();
-                setTodos(todos.map(todo =>
-                    todo._id === id ? updatedTodo : todo
-                ));
-                setEditingTodo(null);
-            } else {
-                setError('Failed to update todo');
+            const body = await response.json().catch(() => null);
+
+            if (!response.ok) {
+                const msg = body && body.message ? body.message : 'Failed to update todo';
+                setError(msg);
+                return;
             }
+
+            const updated = body && body.success ? body.data : body;
+            setTodos(todos.map(todo => (todo._id === id ? updated : todo)));
+            setEditingTodo(null);
         } catch (error) {
             console.error('Error updating todo:', error);
             setError('Network error updating todo');
@@ -95,10 +118,21 @@ function TodoList({ user, onLogout }) {
                 method: 'DELETE',
             });
 
-            if (response.ok) {
+            const body = await response.json().catch(() => null);
+
+            if (!response.ok) {
+                const msg = body && body.message ? body.message : 'Failed to delete todo';
+                setError(msg);
+                return;
+            }
+
+            if (body && body.success) {
+                setTodos(todos.filter(todo => todo._id !== id));
+            } else if (!body) {
+                // if no body, assume success
                 setTodos(todos.filter(todo => todo._id !== id));
             } else {
-                setError('Failed to delete todo');
+                setError(body.message || 'Failed to delete todo');
             }
         } catch (error) {
             console.error('Error deleting todo:', error);
