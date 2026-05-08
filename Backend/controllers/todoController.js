@@ -6,8 +6,10 @@ const isValidId = (id) => mongoose.Types.ObjectId.isValid(id);
 
 exports.getTodosByUser = async (req, res) => {
     const { userId } = req.params;
+    const requester = req.userId;
 
     if (!isValidId(userId)) return error(res, 'Invalid user id', 400);
+    if (!requester || requester !== userId) return error(res, 'Forbidden', 403);
 
     try {
         const todos = await Todo.find({ user: userId }).sort({ createdAt: -1 });
@@ -19,10 +21,11 @@ exports.getTodosByUser = async (req, res) => {
 };
 
 exports.createTodo = async (req, res) => {
-    const { title, description, userId } = req.body;
+    const { title, description } = req.body;
+    const userId = req.userId;
 
-    if (!title || !userId) return error(res, 'Title and userId are required', 400);
-    if (!isValidId(userId)) return error(res, 'Invalid user id', 400);
+    if (!title) return error(res, 'Title is required', 400);
+    if (!userId) return error(res, 'Authentication required', 401);
 
     try {
         const todo = new Todo({ title, description, user: userId });
@@ -37,12 +40,14 @@ exports.createTodo = async (req, res) => {
 exports.updateTodo = async (req, res) => {
     const { id } = req.params;
     const updates = req.body;
+    const userId = req.userId;
 
     if (!isValidId(id)) return error(res, 'Invalid todo id', 400);
+    if (!userId) return error(res, 'Authentication required', 401);
 
     try {
-        const todo = await Todo.findByIdAndUpdate(id, updates, { new: true, runValidators: true });
-        if (!todo) return error(res, 'Todo not found', 404);
+        const todo = await Todo.findOneAndUpdate({ _id: id, user: userId }, updates, { new: true, runValidators: true });
+        if (!todo) return error(res, 'Todo not found or not owned by user', 404);
         return success(res, todo);
     } catch (err) {
         console.error('updateTodo error', err);
@@ -52,12 +57,14 @@ exports.updateTodo = async (req, res) => {
 
 exports.deleteTodo = async (req, res) => {
     const { id } = req.params;
+    const userId = req.userId;
 
     if (!isValidId(id)) return error(res, 'Invalid todo id', 400);
+    if (!userId) return error(res, 'Authentication required', 401);
 
     try {
-        const todo = await Todo.findByIdAndDelete(id);
-        if (!todo) return error(res, 'Todo not found', 404);
+        const todo = await Todo.findOneAndDelete({ _id: id, user: userId });
+        if (!todo) return error(res, 'Todo not found or not owned by user', 404);
         return success(res, { message: 'Todo deleted' });
     } catch (err) {
         console.error('deleteTodo error', err);

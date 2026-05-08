@@ -1,4 +1,5 @@
 const express = require('express');
+const { verifyToken } = require('../middleware/authMiddleware');
 const {
     getTodosByUser,
     createTodo,
@@ -8,9 +9,10 @@ const {
 
 const router = express.Router();
 
-router.get('/todos/:userId', getTodosByUser);
-router.post('/todos', createTodo);
-router.put('/todos/:id', updateTodo);
-router.delete('/todos/:id', deleteTodo);
+// All todo routes require authentication. The middleware populates `req.userId`.
+router.get('/todos/:userId', verifyToken, getTodosByUser);
+router.post('/todos', verifyToken, createTodo);
+router.put('/todos/:id', verifyToken, updateTodo);
+router.delete('/todos/:id', verifyToken, deleteTodo);
 
 module.exports = router;

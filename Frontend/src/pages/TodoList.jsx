@@ -9,13 +9,17 @@ function TodoList({ user, onLogout }) {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
 
-    const apiBase = 'http://localhost:5000/api';
+    const apiHost = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+    const apiBase = `${apiHost}/api`;
 
     const fetchTodos = async () => {
         setLoading(true);
         setError('');
         try {
-            const res = await fetch(`${apiBase}/todos/${user.id}`);
+            const headers = { 'Content-Type': 'application/json' };
+            if (user?.token) headers['Authorization'] = `Bearer ${user.token}`;
+
+            const res = await fetch(`${apiBase}/todos/${user.id}`, { headers });
             const body = await res.json().catch(() => null);
 
             if (!res.ok) throw new Error((body && body.message) || 'Failed to fetch todos');
@@ -39,10 +43,13 @@ function TodoList({ user, onLogout }) {
     const addTodo = async (payload) => {
         setError('');
         try {
+            const headers = { 'Content-Type': 'application/json' };
+            if (user?.token) headers['Authorization'] = `Bearer ${user.token}`;
+
             const res = await fetch(`${apiBase}/todos`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ ...payload, userId: user.id }),
+                headers,
+                body: JSON.stringify(payload),
             });
             const body = await res.json().catch(() => null);
             if (!res.ok) throw new Error((body && body.message) || 'Failed to add todo');
@@ -57,9 +64,12 @@ function TodoList({ user, onLogout }) {
     const updateTodo = async (id, updates) => {
         setError('');
         try {
+            const headers = { 'Content-Type': 'application/json' };
+            if (user?.token) headers['Authorization'] = `Bearer ${user.token}`;
+
             const res = await fetch(`${apiBase}/todos/${id}`, {
                 method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
+                headers,
                 body: JSON.stringify(updates),
             });
             const body = await res.json().catch(() => null);
@@ -76,7 +86,10 @@ function TodoList({ user, onLogout }) {
         if (!window.confirm('Delete this todo?')) return;
         setError('');
         try {
-            const res = await fetch(`${apiBase}/todos/${id}`, { method: 'DELETE' });
+            const headers = {};
+            if (user?.token) headers['Authorization'] = `Bearer ${user.token}`;
+
+            const res = await fetch(`${apiBase}/todos/${id}`, { method: 'DELETE', headers });
             const body = await res.json().catch(() => null);
             if (!res.ok) throw new Error((body && body.message) || 'Failed to delete todo');
             setTodos(prev => prev.filter(t => t._id !== id));

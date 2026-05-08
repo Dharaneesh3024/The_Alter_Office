@@ -26,7 +26,8 @@ function Signup({ onSignup, onSwitchToLogin }) {
         setLoading(true);
 
         try {
-            const response = await fetch('http://localhost:5000/api/signup', {
+            const apiHost = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+            const response = await fetch(`${apiHost}/api/signup`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -34,12 +35,34 @@ function Signup({ onSignup, onSwitchToLogin }) {
                 body: JSON.stringify({ email, password }),
             });
 
-            const data = await response.json();
+            const data = await response.json().catch(() => null);
 
             if (response.ok) {
-                onSignup(data.user);
+                // created response: { success: true, data: { id, email } }
+                const payload = (data && data.data) ? data.data : data;
+                const userObj = { id: payload.id || payload._id, email: payload.email };
+
+                // Attempt to login immediately to obtain a token
+                try {
+                    const loginRes = await fetch(`${apiHost}/api/login`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ email, password })
+                    });
+                    const loginBody = await loginRes.json().catch(() => null);
+                    if (loginRes.ok && loginBody && loginBody.data) {
+                        const token = loginBody.data.token;
+                        onSignup({ id: userObj.id, email: userObj.email, token });
+                        return;
+                    }
+                } catch (err) {
+                    // ignore, fall back to returning user without token
+                    console.error('Auto-login after signup failed', err);
+                }
+
+                onSignup(userObj);
             } else {
-                setError(data.message || 'Signup failed');
+                setError((data && data.message) || 'Signup failed');
             }
         } catch (error) {
             console.error('Signup error:', error);

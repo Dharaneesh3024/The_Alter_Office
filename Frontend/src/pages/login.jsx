@@ -13,7 +13,8 @@ function Login({ onLogin, onSwitchToSignup }) {
         setLoading(true);
 
         try {
-            const response = await fetch('http://localhost:5000/api/login', {
+            const apiHost = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+            const response = await fetch(`${apiHost}/api/login`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -21,12 +22,16 @@ function Login({ onLogin, onSwitchToSignup }) {
                 body: JSON.stringify({ email, password }),
             });
 
-            const data = await response.json();
+            const data = await response.json().catch(() => null);
 
             if (response.ok) {
-                onLogin(data.user);
+                // backend returns { success: true, data: { user, token } }
+                const payload = (data && data.data) ? data.data : data;
+                const user = payload.user || payload;
+                const token = payload.token || null;
+                    onLogin({ id: user.id || user._id, email: user.email, token });
             } else {
-                setError(data.message || 'Login failed');
+                setError((data && data.message) || 'Login failed');
             }
         } catch (error) {
             console.error('Login error:', error);
