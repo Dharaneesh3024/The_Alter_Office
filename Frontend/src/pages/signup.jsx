@@ -1,8 +1,10 @@
 import React from "react";
 import { useState,useEffect } from "react";
+import "./signup.css"
 function Signup(){
-    const[name,setName]=useState("")
+    const[email,setEmail]=useState("")
     const[password,setPassword]=useState("")
+
     const submit=(e)=>{
         alert("Submitted")
         e.preventDefault();
@@ -13,12 +15,14 @@ function Signup(){
         <>
         <div className="signup_form">
         <form onSubmit={submit}>
-            <input type="email" required
+            <label>Email : </label>
+            <input type="email" required value={email}
             onChange={(e)=>{setName(e.target.value)}}
-            ></input>
-            <input type="password" required
+            ></input><br/><br/>
+            <label> Password : </label>
+            <input type="password" required value={password}
             onChange={(e)=>{setPassword(e.target.value)}}>
-            </input>
+            </input><br/>
             <button type="submit">Submit</button>
         </form>
 
