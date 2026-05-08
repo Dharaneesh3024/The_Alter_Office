@@ -1,7 +1,9 @@
 const express=require('express')
 const cors=require('cors')
+const dotenv=require(dotenv)
 const app=express()
 const User=require("./models/user")
+dotenv.config()
 app.use(cors())
 app.use(express.json())
 port=5000
